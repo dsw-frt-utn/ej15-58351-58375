@@ -1,11 +1,9 @@
 ﻿using Dsw2026Ej15.Api.Models;
-using Dsw2026Ej15.Data;
-using Dsw2026Ej15.Domain.Entities;
-using Dsw2026Ej15.Domain.Interfaces;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Dsw2026Ej15.Domain.Entities;
+using Dsw2026Ej15.Data;
 using System.ComponentModel.DataAnnotations;
-using System.Numerics;
+using Dsw2026Ej15.Domain.Interfaces;
 
 namespace Dsw2026Ej15.Api.Controllers;
 
@@ -23,13 +21,13 @@ public class DoctorsController : AppController
         if (String.IsNullOrWhiteSpace(request.Name) ||
             string.IsNullOrWhiteSpace(request.LicenseNumber))
         {
-            return BadRequest("Nombre y Matricula son requeridos");
+            throw new ValidationException("Nombre y Matricula son requeridos");
         }
 
         var speciality = _persistence.GetSpecialityById(request.SpecializationId);
         if (speciality is null)
         {
-            return BadRequest("Especialidad no existente");
+            throw new ValidationException("Especialidad no encontrada");
         }
         var doctor = new Doctor(request.Name, request.LicenseNumber, speciality);
         _persistence.SaveDoctor(doctor);
@@ -45,5 +43,40 @@ public class DoctorsController : AppController
         var activeDoctors = doctors.Where(d => d.IsActive).ToList();
 
         return Ok(activeDoctors);
+    }
+
+    [HttpGet("doctors/{id}")]
+    public async Task<IActionResult> GetDoctorById(Guid id)
+    {
+
+        var doctor = _persistence.GetDoctorById(id);
+
+
+        if (doctor is null || !doctor.IsActive)
+        {
+            throw new ValidationException($"No se encontró un médico activo con el ID {id}");
+        }
+
+
+        return Ok(new
+        {
+            doctor.Name,
+            doctor.LicenseNumber,
+            SpecialityName = doctor.Speciality?.Name ?? "Sin especialidad"
+        });
+    }
+    [HttpDelete("doctors/{id}")]
+    public async Task<IActionResult> DeleteDoctor(Guid id)
+    {
+        var doctor = _persistence.GetDoctorById(id);
+
+        if (doctor is null || !doctor.IsActive)
+        {
+            throw new ValidationException($"No se encontró un médico activo con el ID {id}");
+        }
+
+        _persistence.ToggleDoctorActive(id);
+
+        return NoContent();
     }
 }
