@@ -47,6 +47,14 @@ namespace Dsw2026Ej15.Data
             }
             return doctor;
         }
+        public List<Doctor> GetActiveDoctors()
+        {
+            foreach (var doctor in _doctors)
+            {
+                doctor.Speciality = GetSpecialityById(doctor.SpecialityId);
+            }
+            return _doctors.Where(d => d.IsActive).ToList();
+        }
         private void LoadSpecialities()
         {
             try
